@@ -2,6 +2,7 @@ import {html, css, LitElement} from "lit";
 import {customElement, state} from "lit/decorators.js";
 import cssReset from "./css/reset";
 import cssButton from "./css/button";
+import {log} from "util";
 
 interface entityConfig {
     unique_id: string;
@@ -110,10 +111,46 @@ export class EntityTable extends LitElement {
                 max="${max}"
                 @change="${(e: Event) => {
                     let val = e.target?.value;
-                    this.restAction(entity, `${action}?${opt}=${val}`, val);
+                    this.restAction(entity, `${action}?${opt}=${val}`, {"brightness":val});
                 }}"
         />
         <label>${max || 100}</label>`;
+    }
+
+    log(data: any) {
+        console.log(data)
+    }
+
+    colorValue(ev: CustomEvent) {
+        const color = ev.target?.value
+        const r = parseInt(color.substr(1, 2), 16)
+        const g = parseInt(color.substr(3, 2), 16)
+        const b = parseInt(color.substr(5, 2), 16)
+        console.log(`red: ${r}, green: ${g}, blue: ${b}`)
+        return [r,g,b]
+    }
+
+    color(entity: entityConfig, value: any) {
+        return html`
+            <input
+                    type="color"
+                    id="${entity.unique_id}"
+                    value="${value}"
+                    @change="${(e: CustomEvent) => {
+                        let rgb = this.colorValue(e);
+                        let act = "turn_" + entity.state + "?r=" + rgb[0] + "&g=" + rgb[1] + "&b=" + rgb[2];
+                        this.restAction(entity, act.toLowerCase(), {
+                            "id": entity.unique_id,
+                            "state": entity.state,
+                            "brightness": entity.brightness,
+                            "effect": "None",
+                            "color": {
+                                "r": rgb[0],
+                                "g": rgb[1],
+                                "b": rgb[2]
+                            }});
+                    }}"
+            ></input>`;
     }
 
     switch(entity: entityConfig) {
@@ -171,6 +208,11 @@ export class EntityTable extends LitElement {
                         0,
                         255,
                         1
+                    )
+                    : "",
+                entity.color
+                    ? this.color(
+                        entity, entity.value
                     )
                     : "",
             ];
@@ -233,7 +275,7 @@ export class EntityTable extends LitElement {
     restAction(entity: entityConfig, action: String, value: any) {
         fetch(`/${entity.domain}/${entity.id}/${action}`, {
             method: "POST",
-            body: value !== undefined && entity.domain == "light" ? JSON.stringify({"brightness": value}) : "true",
+            body: value === undefined || entity.domain !== "light" ? "true" :  JSON.stringify(value)
         }).then((r) => {
             console.log(r);
         });
