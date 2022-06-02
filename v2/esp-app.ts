@@ -115,9 +115,6 @@ export default class EspApp extends LitElement {
           </h2>
           ${this.ota()}
         </section>
-        <section class="col">
-          <esp-log rows="50"></esp-log>
-        </section>
       </main>
     `;
   }
