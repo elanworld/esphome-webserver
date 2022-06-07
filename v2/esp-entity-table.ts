@@ -26,6 +26,7 @@ interface entityConfig {
 @customElement("esp-entity-table")
 export class EntityTable extends LitElement {
     @state({type: Array, reflect: true}) entities: entityConfig[] = [];
+    @state({type: WebSocket, reflect: true}) ws: WebSocket;
 
     constructor() {
         super();
@@ -33,30 +34,50 @@ export class EntityTable extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        window.source?.addEventListener("state", (e: Event) => {
-            const messageEvent = e as MessageEvent;
-            const data = JSON.parse(messageEvent.data);
-            let idx = this.entities.findIndex((x) => x.unique_id === data.id);
-            if (idx === -1 && data.id) {
-                // Dynamically add discovered..
-                let parts = data.id.split("-");
-                let entity = {
-                    ...data,
-                    domain: parts[0],
-                    unique_id: data.id,
-                    id: parts.slice(1).join("-"),
-                } as entityConfig;
-                this.entities.push(entity);
-                this.entities.sort((a, b) => (a.name < b.name ? -1 : 1));
-                this.requestUpdate();
-            } else {
-                delete data.id;
-                delete data.domain;
-                delete data.unique_id;
-                Object.assign(this.entities[idx], data);
-                this.requestUpdate();
-            }
-        });
+        let espEntityClass = this;
+        let ws = new WebSocket("ws://localhost:8083/entity");
+        ws.onopen = function () {
+            console.log("connected")
+        };
+
+        ws.onclose = function () {
+            console.log("onclose")
+        };
+        ws.onmessage = function (evt) {
+            espEntityClass.receiveMessage(evt.data)
+        }
+        this.ws = ws
+
+    }
+
+    receiveMessage(message: string) {
+        const data = JSON.parse(message);
+        for (const dataKey in data) {
+            this.handleEntity(data[dataKey])
+        }
+    }
+
+    handleEntity(data:any) {
+        let idx = this.entities.findIndex((x) => x.unique_id === data.id);
+        if (idx === -1 && data.id) {
+            // Dynamically add discovered..
+            let parts = data.id.split(".");
+            let entity = {
+                ...data,
+                domain: parts[1],
+                unique_id: data.id,
+                id: parts.slice(1).join("-"),
+            } as entityConfig;
+            this.entities.push(entity);
+            this.entities.sort((a, b) => (a.name < b.name ? -1 : 1));
+            this.requestUpdate();
+        } else {
+            delete data.id;
+            delete data.domain;
+            delete data.unique_id;
+            Object.assign(this.entities[idx], data);
+            this.requestUpdate();
+        }
     }
 
     actionButton(entity: entityConfig, label: String, action?: String) {
@@ -111,7 +132,7 @@ export class EntityTable extends LitElement {
                 max="${max}"
                 @change="${(e: Event) => {
                     let val = e.target?.value;
-                    this.restAction(entity, `${action}?${opt}=${val}`, {"brightness":val});
+                    this.mqttAction({"payload": {"brightness":val},"topic":entity.command_topic})
                 }}"
         />
         <label>${max || 100}</label>`;
@@ -159,8 +180,7 @@ export class EntityTable extends LitElement {
                     color="var(--primary-color,currentColor)"
                     .state="${entity.state}"
                     @state="${(e: CustomEvent) => {
-                        let act = "turn_" + e.detail.state;
-                        this.restAction(entity, act.toLowerCase());
+                        this.mqttAction({"payload": {"state":e.detail.state},"topic":entity.command_topic});
                     }}"
             ></esp-switch>`;
     }
@@ -199,18 +219,18 @@ export class EntityTable extends LitElement {
                     entity.effects,
                     entity.effect
                 ),
-                entity.brightness
+                entity.status?.brightness
                     ? this.range(
                         entity,
-                        `turn_${entity.state.toLowerCase()}`,
+                        `turn_${entity.status.state.toLowerCase()}`,
                         "brightness",
-                        entity.brightness,
+                        entity.status.brightness,
                         0,
                         255,
                         1
                     )
                     : "",
-                entity.color
+                entity.status?.color
                     ? this.color(
                         entity, entity.value
                     )
@@ -279,6 +299,10 @@ export class EntityTable extends LitElement {
         }).then((r) => {
             console.log(r);
         });
+    }
+
+    mqttAction(payload: any) {
+        this.ws.send(JSON.stringify(payload))
     }
 
     render() {
