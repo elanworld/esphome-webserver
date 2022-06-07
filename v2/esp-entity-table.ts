@@ -54,6 +54,7 @@ export class EntityTable extends LitElement {
         const data = JSON.parse(message);
         for (const dataKey in data) {
             this.handleEntity(data[dataKey])
+            this.requestUpdate();
         }
     }
 
@@ -70,13 +71,11 @@ export class EntityTable extends LitElement {
             } as entityConfig;
             this.entities.push(entity);
             this.entities.sort((a, b) => (a.name < b.name ? -1 : 1));
-            this.requestUpdate();
         } else {
             delete data.id;
             delete data.domain;
             delete data.unique_id;
             Object.assign(this.entities[idx], data);
-            this.requestUpdate();
         }
     }
 
@@ -159,17 +158,7 @@ export class EntityTable extends LitElement {
                     value="${value}"
                     @change="${(e: CustomEvent) => {
                         let rgb = this.colorValue(e);
-                        let act = "turn_" + entity.state + "?r=" + rgb[0] + "&g=" + rgb[1] + "&b=" + rgb[2];
-                        this.restAction(entity, act.toLowerCase(), {
-                            "id": entity.unique_id,
-                            "state": entity.state,
-                            "brightness": entity.brightness,
-                            "effect": "None",
-                            "color": {
-                                "r": rgb[0],
-                                "g": rgb[1],
-                                "b": rgb[2]
-                            }});
+                        this.mqttAction({"payload": {"color":{"r":rgb[0],"g":rgb[1],"b":rgb[2],}},"topic":entity.command_topic})
                     }}"
             ></input>`;
     }
