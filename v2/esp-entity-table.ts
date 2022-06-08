@@ -167,9 +167,13 @@ export class EntityTable extends LitElement {
         return html`
             <esp-switch
                     color="var(--primary-color,currentColor)"
-                    .state="${entity.state}"
+                    .state="${entity.status?.state}"
                     @state="${(e: CustomEvent) => {
-                        this.mqttAction({"payload": {"state":e.detail.state},"topic":entity.command_topic});
+                        if (entity.domain === "switch") {
+                            this.mqttAction({"payload": e.detail.state,"topic":entity.command_topic});
+                        } else if (entity.domain === "light"){
+                            this.mqttAction({"payload": {"state":e.detail.state},"topic":entity.command_topic});
+                        }
                     }}"
             ></esp-switch>`;
     }
@@ -309,7 +313,7 @@ export class EntityTable extends LitElement {
                         (component) => html`
                             <tr>
                                 <td>${component.name}</td>
-                                <td>${component.state}</td>
+                                <td>${component.status?.state}</td>
                                 <td>${this.control(component)}</td>
                             </tr>
                         `
