@@ -82,17 +82,5 @@ export default defineConfig({
     host: true, // dev on local and network
     port: 8081,
     strictPort: true,
-    proxy: {
-      "/light": proxy_target,
-      "/select": proxy_target,
-      "/cover": proxy_target,
-      "/switch": proxy_target,
-      "/button": proxy_target,
-      "/fan": proxy_target,
-      "/lock": proxy_target,
-      "/number": proxy_target,
-      "/climate": proxy_target,
-      "/events": proxy_target,
-    },
   },
 });
