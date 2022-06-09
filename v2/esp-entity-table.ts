@@ -47,15 +47,14 @@ export class EntityTable extends LitElement {
             espEntityClass.receiveMessage(evt.data)
         }
         this.ws = ws
-
     }
 
     receiveMessage(message: string) {
         const data = JSON.parse(message);
         for (const dataKey in data) {
             this.handleEntity(data[dataKey])
-            this.requestUpdate();
         }
+        this.requestUpdate();
     }
 
     handleEntity(data:any) {
@@ -137,10 +136,6 @@ export class EntityTable extends LitElement {
         <label>${max || 100}</label>`;
     }
 
-    log(data: any) {
-        console.log(data)
-    }
-
     colorValue(ev: CustomEvent) {
         const color = ev.target?.value
         const r = parseInt(color.substr(1, 2), 16)
@@ -150,7 +145,19 @@ export class EntityTable extends LitElement {
         return [r,g,b]
     }
 
+    colorHex(value: any) {
+        function componentToHex(c: { toString: (arg0: number) => any; }) {
+            let hex = c.toString(16)
+            return hex.length == 1 ? "0" + hex : hex
+        }
+        let json = JSON.parse(value)
+        return "#"+componentToHex(json.r)+componentToHex(json.g)+componentToHex(json.b)
+    }
+
+
+
     color(entity: entityConfig, value: any) {
+        value = this.colorHex(value)
         return html`
             <input
                     type="color"
@@ -225,7 +232,7 @@ export class EntityTable extends LitElement {
                     : "",
                 entity.status?.color
                     ? this.color(
-                        entity, entity.value
+                        entity, entity.status?.color
                     )
                     : "",
             ];
