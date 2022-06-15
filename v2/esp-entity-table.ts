@@ -2,7 +2,6 @@ import {html, css, LitElement} from "lit";
 import {customElement, state} from "lit/decorators.js";
 import cssReset from "./css/reset";
 import cssButton from "./css/button";
-import {log} from "util";
 
 interface entityConfig {
     unique_id: string;
@@ -35,9 +34,12 @@ export class EntityTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         let espEntityClass = this;
-        let ws = new WebSocket("ws://localhost:8083/entity");
+        console.log("env:")
+        let ws = new WebSocket("ws://localhost:8030/entity");
+        this.ws = ws
         ws.onopen = function () {
             console.log("connected")
+            espEntityClass.mqttAction({type: "auth", payload: window.localStorage.getItem("Authorization")})
         };
 
         ws.onclose = function () {
@@ -46,25 +48,22 @@ export class EntityTable extends LitElement {
         ws.onmessage = function (evt) {
             espEntityClass.receiveMessage(evt.data)
         }
-        this.ws = ws
     }
 
     receiveMessage(message: string) {
         const data = JSON.parse(message);
-        for (const dataKey in data) {
-            this.handleEntity(data[dataKey])
-        }
+        this.handleEntity(data)
         this.requestUpdate();
     }
 
-    handleEntity(data:any) {
+    handleEntity(data: any) {
         let idx = this.entities.findIndex((x) => x.unique_id === data.id);
         if (idx === -1 && data.id) {
             // Dynamically add discovered..
             let parts = data.id.split(".");
             let entity = {
                 ...data,
-                domain: parts[1],
+                domain: data.domain,
                 unique_id: data.id,
                 id: parts.slice(1).join("-"),
             } as entityConfig;
@@ -130,7 +129,7 @@ export class EntityTable extends LitElement {
                 max="${max}"
                 @change="${(e: Event) => {
                     let val = e.target?.value;
-                    this.mqttAction({"payload": {"brightness":val},"topic":entity.command_topic})
+                    this.mqttAction({"payload": {"brightness": val}, "topic": entity.command_topic})
                 }}"
         />
         <label>${max || 100}</label>`;
@@ -142,7 +141,7 @@ export class EntityTable extends LitElement {
         const g = parseInt(color.substr(3, 2), 16)
         const b = parseInt(color.substr(5, 2), 16)
         console.log(`red: ${r}, green: ${g}, blue: ${b}`)
-        return [r,g,b]
+        return [r, g, b]
     }
 
     colorHex(value: any) {
@@ -150,10 +149,10 @@ export class EntityTable extends LitElement {
             let hex = c.toString(16)
             return hex.length == 1 ? "0" + hex : hex
         }
-        let json = JSON.parse(value)
-        return "#"+componentToHex(json.r)+componentToHex(json.g)+componentToHex(json.b)
-    }
 
+        let json = JSON.parse(value)
+        return "#" + componentToHex(json.r) + componentToHex(json.g) + componentToHex(json.b)
+    }
 
 
     color(entity: entityConfig, value: any) {
@@ -165,7 +164,10 @@ export class EntityTable extends LitElement {
                     value="${value}"
                     @change="${(e: CustomEvent) => {
                         let rgb = this.colorValue(e);
-                        this.mqttAction({"payload": {"color":{"r":rgb[0],"g":rgb[1],"b":rgb[2],}},"topic":entity.command_topic})
+                        this.mqttAction({
+                            "payload": {"color": {"r": rgb[0], "g": rgb[1], "b": rgb[2],}},
+                            "topic": entity.command_topic
+                        })
                     }}"
             ></input>`;
     }
@@ -177,9 +179,9 @@ export class EntityTable extends LitElement {
                     .state="${entity.status?.state}"
                     @state="${(e: CustomEvent) => {
                         if (entity.domain === "switch") {
-                            this.mqttAction({"payload": e.detail.state,"topic":entity.command_topic});
-                        } else if (entity.domain === "light"){
-                            this.mqttAction({"payload": {"state":e.detail.state},"topic":entity.command_topic});
+                            this.mqttAction({"payload": e.detail.state, "topic": entity.command_topic});
+                        } else if (entity.domain === "light") {
+                            this.mqttAction({"payload": {"state": e.detail.state}, "topic": entity.command_topic});
                         }
                     }}"
             ></esp-switch>`;
@@ -295,7 +297,7 @@ export class EntityTable extends LitElement {
     restAction(entity: entityConfig, action: String, value: any) {
         fetch(`/${entity.domain}/${entity.id}/${action}`, {
             method: "POST",
-            body: value === undefined || entity.domain !== "light" ? "true" :  JSON.stringify(value)
+            body: value === undefined || entity.domain !== "light" ? "true" : JSON.stringify(value)
         }).then((r) => {
             console.log(r);
         });

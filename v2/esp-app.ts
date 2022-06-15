@@ -8,8 +8,6 @@ import "./esp-logo";
 import cssReset from "./css/reset";
 import cssButton from "./css/button";
 
-window.source = new EventSource("/events");
-
 interface Config {
   ota: boolean;
   title: string;
@@ -44,22 +42,7 @@ export default class EspApp extends LitElement {
       this.scheme = this.isDark();
     });
     this.scheme = this.isDark();
-    window.source.addEventListener("ping", (e: Event) => {
-      const messageEvent = e as MessageEvent;
-      const d: String = messageEvent.data;
-      if (d.length) {
-        const config = JSON.parse(messageEvent.data);
-        this.config = config;
 
-        document.title = config.title;
-        document.documentElement.lang = config.lang;
-      }
-      this.ping = messageEvent.lastEventId;
-    });
-    window.source.onerror = function (e: Event) {
-      console.dir(e);
-      //alert("Lost event stream!")
-    };
   }
 
   isDark() {
