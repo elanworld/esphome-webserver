@@ -1,5 +1,6 @@
 import {html, css, LitElement} from "lit";
 import {customElement, state} from "lit/decorators.js";
+import Api from "./service"
 import cssReset from "./css/reset";
 import cssButton from "./css/button";
 
@@ -34,8 +35,8 @@ export class EntityTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         let espEntityClass = this;
-        console.log("env:")
-        let ws = new WebSocket("ws://localhost:8030/entity");
+        let optionalParams = import.meta.env;
+        let ws = new WebSocket(Api.wsPath);
         this.ws = ws
         ws.onopen = function () {
             console.log("connected")
@@ -68,7 +69,12 @@ export class EntityTable extends LitElement {
                 id: parts.slice(1).join("-"),
             } as entityConfig;
             this.entities.push(entity);
-            this.entities.sort((a, b) => (a.name < b.name ? -1 : 1));
+            this.entities.sort((a, b) => {
+                if (a?.device?.id === b?.device?.id) {
+                    return a.domain < b.domain ? -1 : 1
+                }
+                return a?.device?.id < b?.device?.id ? -1 : 1
+            });
         } else {
             delete data.id;
             delete data.domain;
@@ -189,7 +195,6 @@ export class EntityTable extends LitElement {
 
     control(entity: entityConfig) {
         if (entity.domain === "switch") return [this.switch(entity)];
-
         if (entity.domain === "fan") {
             return [
                 entity.speed,

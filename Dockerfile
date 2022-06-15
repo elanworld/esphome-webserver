@@ -1,7 +1,2 @@
-FROM node:lts-alpine3.16
-WORKDIR /app
-ADD package.json .
-RUN apk add xdg-utils && npm install
-ADD ./ .
-EXPOSE 8081
-CMD npm run dev
+FROM nginx:1.20.0-alpine
+ADD _static/v2 /usr/share/nginx/html
