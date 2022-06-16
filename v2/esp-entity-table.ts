@@ -101,7 +101,7 @@ export class EntityTable extends LitElement {
         return html`<select
                 @change="${(e: Event) => {
                     let val = e.target?.value;
-                    this.restAction(entity, `${action}?${opt}=${val}`);
+                    this.mqttAction({"payload": {"effect": val}, "topic": entity.command_topic})
                 }}"
         >
             ${options.map(
@@ -218,20 +218,20 @@ export class EntityTable extends LitElement {
         if (entity.domain === "light")
             return [
                 this.switch(entity),
-                entity.effects &&
+                entity.effect_list &&
                 this.select(
                     entity,
                     "turn_on",
                     "effect",
-                    entity.effects,
-                    entity.effect
+                    JSON.parse(entity.effect_list),
+                    entity.status?.effect
                 ),
                 entity.status?.brightness
                     ? this.range(
                         entity,
                         `turn_${entity.status.state.toLowerCase()}`,
                         "brightness",
-                        entity.status.brightness,
+                        entity.status?.brightness,
                         0,
                         255,
                         1
