@@ -3,6 +3,7 @@ import {customElement, state} from "lit/decorators.js";
 import Api from "./service"
 import cssReset from "./css/reset";
 import cssButton from "./css/button";
+import service from "./service";
 
 interface entityConfig {
     unique_id: string;
@@ -38,9 +39,10 @@ export class EntityTable extends LitElement {
         let optionalParams = import.meta.env;
         let ws = new WebSocket(Api.wsPath);
         this.ws = ws
+        let authorization = "Authorization";
         ws.onopen = function () {
             console.log("connected")
-            espEntityClass.mqttAction({type: "auth", payload: window.localStorage.getItem("Authorization")})
+            espEntityClass.mqttAction({type: "auth", payload: window.localStorage.getItem(authorization)})
         };
 
         ws.onclose = function () {
@@ -49,6 +51,26 @@ export class EntityTable extends LitElement {
         ws.onmessage = function (evt) {
             espEntityClass.receiveMessage(evt.data)
         }
+        setTimeout(() => {
+            if (this.entities.length === 0) {
+                let request = new XMLHttpRequest()
+                request.addEventListener('load', function () {
+                    if (request.status === 200) {
+                        let parse = JSON.parse(request.responseText);
+                        let length = 0;
+                        for(let k in parse) {
+                            if(parse.hasOwnProperty(k)) length++;
+                        }
+                        if (length === 0) {
+                            window.location.replace("/#/pages/login/login");
+                        }
+                    }
+                });
+                request.open('GET', service.userInfo + "?jwt=" + window.localStorage.getItem(authorization))
+                request.send()
+
+            }
+        },500)
     }
 
     receiveMessage(message: string) {
