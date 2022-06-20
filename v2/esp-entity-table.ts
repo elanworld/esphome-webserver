@@ -111,7 +111,7 @@ export class EntityTable extends LitElement {
                 max="${max}"
                 @change="${(e: Event) => {
                     let val = e.target?.value;
-                    this.restAction(entity, `${action}?${opt}=${val}`, {"brightness":val});
+                    this.restAction(entity, `${action}?${opt}=${val}`, {"brightness": val});
                 }}"
         />
         <label>${max || 100}</label>`;
@@ -127,10 +127,20 @@ export class EntityTable extends LitElement {
         const g = parseInt(color.substr(3, 2), 16)
         const b = parseInt(color.substr(5, 2), 16)
         console.log(`red: ${r}, green: ${g}, blue: ${b}`)
-        return [r,g,b]
+        return [r, g, b]
     }
 
+    colorHex(value: any) {
+        function componentToHex(c: { toString: (arg0: number) => any; }) {
+            let hex = c.toString(16)
+            return hex.length == 1 ? "0" + hex : hex
+        }
+        return "#" + componentToHex(value.r) + componentToHex(value.g) + componentToHex(value.b)
+    }
+
+
     color(entity: entityConfig, value: any) {
+        value = this.colorHex(value)
         return html`
             <input
                     type="color"
@@ -212,7 +222,7 @@ export class EntityTable extends LitElement {
                     : "",
                 entity.color
                     ? this.color(
-                        entity, entity.value
+                        entity, entity?.color
                     )
                     : "",
             ];
@@ -275,7 +285,7 @@ export class EntityTable extends LitElement {
     restAction(entity: entityConfig, action: String, value: any) {
         fetch(`/${entity.domain}/${entity.id}/${action}`, {
             method: "POST",
-            body: value === undefined || entity.domain !== "light" ? "true" :  JSON.stringify(value)
+            body: value === undefined || entity.domain !== "light" ? "true" : JSON.stringify(value)
         }).then((r) => {
             console.log(r);
         });
