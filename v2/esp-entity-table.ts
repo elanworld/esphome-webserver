@@ -6,22 +6,39 @@ import cssButton from "./css/button";
 import service from "./service";
 
 interface entityConfig {
-    unique_id: string;
-    domain: string;
+    config_topic: string;
     id: string;
-    state: string;
-    detail: string;
-    value: string;
+    domain: string;
+    entity_id: string;
     name: string;
-    when: string;
-    icon?: string;
-    option?: string[];
-    target_temperature?: Number;
-    current_temperature?: Number;
-    mode?: Number;
-    speed_count?: Number;
-    speed_level?: Number;
-    speed: string;
+    config_device_id: string;
+    command_topic: string;
+    state_topic: string;
+    availability_topic: string;
+    effect_list: string;
+    value_template: string;
+    unit_of_measurement: string;
+    device: {
+        id: string;
+        device: string;
+        name: string;
+        identifiers: string;
+        swVersion: string;
+        model: string;
+        manufacturer: string;
+        roles: string;
+        remark: string;
+    };
+    status: {
+        id: string;
+        configEntityId: string;
+        state: string;
+        brightness: Number;
+        colorMode: string;
+        color: string;
+        effect: string;
+        remark: string;
+    };
 }
 
 @customElement("esp-entity-table")
@@ -58,8 +75,8 @@ export class EntityTable extends LitElement {
                     if (request.status === 200) {
                         let parse = JSON.parse(request.responseText);
                         let length = 0;
-                        for(let k in parse) {
-                            if(parse.hasOwnProperty(k)) length++;
+                        for (let k in parse) {
+                            if (parse.hasOwnProperty(k)) length++;
                         }
                         if (length === 0) {
                             window.location.replace("/#/pages/login/login");
@@ -70,7 +87,7 @@ export class EntityTable extends LitElement {
                 request.send()
 
             }
-        },500)
+        }, 500)
     }
 
     receiveMessage(message: string) {
