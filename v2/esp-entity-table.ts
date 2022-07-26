@@ -386,6 +386,8 @@ export class EntityTable extends LitElement {
           border-collapse: collapse;
           width: 100%;
           border: 1px solid currentColor;
+          word-break: break-all;
+          table-layout: fixed;
         }
 
         th {
